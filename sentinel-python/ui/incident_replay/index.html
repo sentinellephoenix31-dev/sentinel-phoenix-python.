@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<title>Sentinel Phoenix - Visual Incident Replay</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    background:
+        radial-gradient(
+            circle at 50% 45%,
+            #0b2b2b 0%,
+            #061415 38%,
+            #020708 75%,
+            #000000 100%
+        );
+
+    color: #9dffe4;
+
+    font-family:
+        "Courier New",
+        monospace;
+}
+
+
+/* ==========================================================
+   MAIN
+   ========================================================== */
+
+#app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+
+/* ==========================================================
+   CANVAS
+   ========================================================== */
+
+#globe {
+    position: absolute;
+
+    left: 4%;
+    top: 15%;
+
+    width: 57%;
+    height: 70%;
+}
+
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
+
+#header {
+    position: absolute;
+
+    top: 28px;
+    left: 32px;
+
+    z-index: 10;
+}
+
+
+#title {
+    font-size: 29px;
+
+    font-weight: bold;
+
+    letter-spacing: 2px;
+
+    text-shadow:
+        0 0 10px
+        rgba(90, 255, 210, 0.55);
+}
+
+
+#subtitle {
+    margin-top: 7px;
+
+    font-size: 12px;
+
+    letter-spacing: 1px;
+
+    color: #66e8c6;
+}
+
+
+#telemetryStatus {
+    margin-top: 17px;
+
+    font-size: 12px;
+
+    color: #7bffe0;
+}
+
+
+/* ==========================================================
+   INTELLIGENCE PANEL
+   ========================================================== */
+
+#panel {
+    position: absolute;
+
+    right: 5%;
+    top: 18%;
+
+    width: 38%;
+    max-width: 520px;
+
+    min-height: 500px;
+
+    padding: 24px;
+
+    border: 2px solid
+        rgba(
+            107,
+            255,
+            220,
+            0.78
+        );
+
+    background:
+        rgba(
+            3,
+            18,
+            18,
+            0.84
+        );
+
+    box-shadow:
+        0 0 32px
+        rgba(
+            60,
+            255,
+            205,
+            0.13
+        );
+
+    z-index: 20;
+}
+
+
+#panelTitle {
+    font-size: 18px;
+
+    font-weight: bold;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 24px;
+}
+
+
+.row {
+    display: grid;
+
+    grid-template-columns:
+        120px
+        1fr;
+
+    margin-bottom: 12px;
+
+    align-items: start;
+}
+
+
+.label {
+    font-size: 12px;
+
+    color: #55e9c3;
+}
+
+
+.value {
+    font-size: 12px;
+
+    color: #e0fff7;
+
+    word-break: break-word;
+}
+
+
+/* ==========================================================
+   DESCRIPTION
+   ========================================================== */
+
+#description {
+    margin-top: 23px;
+
+    padding-top: 15px;
+
+    border-top:
+        1px solid
+        rgba(
+            104,
+            255,
+            218,
+            0.35
+        );
+
+    color: #c8fff0;
+
+    font-size: 11px;
+
+    line-height: 1.5;
+}
+
+
+/* ==========================================================
+   FOOTER
+   ========================================================== */
+
+#footerLeft {
+    position: absolute;
+
+    left: 34px;
+    bottom: 27px;
+
+    font-size: 11px;
+
+    color: #5fffd5;
+
+    z-index: 20;
+}
+
+
+#footerRight {
+    position: absolute;
+
+    right: 34px;
+    bottom: 27px;
+
+    font-size: 10px;
+
+    color: #83cfc0;
+
+    z-index: 20;
+}
+
+
+/* ==========================================================
+   PULSE
+   ========================================================== */
+
+.pulse {
+    animation:
+        pulseAnimation
+        1.4s
+        infinite;
+}
+
+
+@keyframes pulseAnimation {
+
+    0% {
+        opacity: 0.45;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.45;
+    }
+}
+
+
+/* ==========================================================
+   RESPONSIVE
+   ========================================================== */
+
+@media (
+    max-width: 850px
+) {
+
+    #panel {
+        width: 44%;
+        right: 2%;
+    }
+
+    #globe {
+        width: 55%;
+        left: 0%;
+    }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<div id="app">
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <div id="header">
+
+        <div id="title">
+            SENTINEL PHOENIX
+        </div>
+
+        <div id="subtitle">
+            VISUAL INCIDENT REPLAY // INCIDENT INTELLIGENCE
+        </div>
+
+        <div
+            id="telemetryStatus"
+            class="pulse"
+        >
+            CONNECTING TO SENTINEL TELEMETRY...
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         GLOBE
+         ===================================================== -->
+
+    <canvas id="globe"></canvas>
+
+
+    <!-- =====================================================
+         PANEL
+         ===================================================== -->
+
+    <div id="panel">
+
+        <div id="panelTitle">
+            INCIDENT INTELLIGENCE
+        </div>
+
+
+        <div class="row">
+
+            <div class="label">
+                SOURCE IP
+            </div>
+
+            <div
+                class="value"
+                id="sourceIp"
+            >
+                WAITING...
+            </div>
+
+        </div>
+
+
+        <div class="row">
+
+            <div class="label">
+                COUNTRY
+            </div>
+
+            <div
+                class="value"
+                id="country"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <div class="row">
+
+            <div class="label">
+                REGION
+            </div>
+
+            <div
+                class="value"
+                id="region"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <div class="row">
+
+            <div class="label">
+                CITY
+            </div>
+
+            <div
+                class="value"
+                id="city"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <div class="row">
+
+            <div class="label">
+                ASN
+            </div>
+
+            <div
+                class="value"
+                id="asn"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <div class="row">
+
+            <div class="label">
+                PROVIDER
+            </div>
+
+            <div
+                class="value"
+                id="provider"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <br>
+
+
+        <div class="row">
+
+            <div class="label">
+                DATE
+            </div>
+
+            <div
+                class="value"
+                id="date"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <div class="row">
+
+            <div class="label">
+                TIME
+            </div>
+
+            <div
+                class="value"
+                id="time"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <br>
+
+
+        <div class="row">
+
+            <div class="label">
+                THREAT
+            </div>
+
+            <div
+                class="value"
+                id="threat"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <div class="row">
+
+            <div class="label">
+                RISK SCORE
+            </div>
+
+            <div
+                class="value"
+                id="risk"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <div class="row">
+
+            <div class="label">
+                ACTION
+            </div>
+
+            <div
+                class="value"
+                id="action"
+            >
+                --
+            </div>
+
+        </div>
+
+
+        <div id="description">
+            Waiting for Sentinel telemetry.
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         FOOTER
+         ===================================================== -->
+
+    <div id="footerLeft">
+        GLOBAL THREAT CORRELATION ACTIVE
+    </div>
+
+
+    <div id="footerRight">
+        IP LOCATION IS APPROXIMATE
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+/* ==========================================================
+   SENTINEL PHOENIX
+   VISUAL INCIDENT REPLAY UI V2
+   ========================================================== */
+
+
+const canvas =
+    document.getElementById(
+        "globe"
+    );
+
+
+const ctx =
+    canvas.getContext(
+        "2d"
+    );
+
+
+let width = 0;
+
+let height = 0;
+
+let rotation = 0;
+
+
+let payload = null;
+
+let incidents = [];
+
+let activeIncidentIndex = 0;
+
+let lastIncidentSwitch =
+    performance.now();
+
+
+
+/* ==========================================================
+   ELEMENT
+   ========================================================== */
+
+function element(
+    id
+) {
+
+    return document.getElementById(
+        id
+    );
+}
+
+
+/* ==========================================================
+   VALUE HELPERS
+   ========================================================== */
+
+function validValue(
+    value
+) {
+
+    return (
+        value !== undefined
+        &&
+        value !== null
+        &&
+        value !== ""
+    );
+}
+
+
+/* ==========================================================
+   RECURSIVE FIELD SEARCH
+   ========================================================== */
+
+function deepFind(
+    object,
+    keys,
+    depth = 0
+) {
+
+    if (
+        !object
+        ||
+        typeof object !== "object"
+        ||
+        depth > 7
+    ) {
+
+        return null;
+    }
+
+
+    for (
+        const key
+        of keys
+    ) {
+
+        if (
+            Object.prototype.hasOwnProperty.call(
+                object,
+                key
+            )
+            &&
+            validValue(
+                object[
+                    key
+                ]
+            )
+        ) {
+
+            return object[
+                key
+            ];
+        }
+    }
+
+
+    for (
+        const value
+        of Object.values(
+            object
+        )
+    ) {
+
+        if (
+            value
+            &&
+            typeof value === "object"
+        ) {
+
+            const result =
+                deepFind(
+                    value,
+                    keys,
+                    depth + 1
+                );
+
+
+            if (
+                validValue(
+                    result
+                )
+            ) {
+
+                return result;
+            }
+        }
+    }
+
+
+    return null;
+}
+
+
+/* ==========================================================
+   NORMALIZE INCIDENT
+   ========================================================== */
+
+function normalizeIncident(
+    raw
+) {
+
+    const timestamp =
+        deepFind(
+            raw,
+            [
+                "timestamp_iso",
+                "timestamp",
+                "detected_at",
+                "created_at",
+                "time",
+                "datetime"
+            ]
+        );
+
+
+    const sourceIp =
+        deepFind(
+            raw,
+            [
+                "source_ip",
+                "src_ip",
+                "remote_ip",
+                "attacker_ip",
+                "client_ip",
+                "ip"
+            ]
+        );
+
+
+    const threat =
+        deepFind(
+            raw,
+            [
+                "attack_type",
+                "threat_type",
+                "threat",
+                "event_type",
+                "event",
+                "classification",
+                "type"
+            ]
+        );
+
+
+    const country =
+        deepFind(
+            raw,
+            [
+                "country",
+                "country_name"
+            ]
+        );
+
+
+    const region =
+        deepFind(
+            raw,
+            [
+                "region",
+                "region_name",
+                "state"
+            ]
+        );
+
+
+    const city =
+        deepFind(
+            raw,
+            [
+                "city"
+            ]
+        );
+
+
+    const asn =
+        deepFind(
+            raw,
+            [
+                "asn",
+                "asn_number"
+            ]
+        );
+
+
+    const provider =
+        deepFind(
+            raw,
+            [
+                "provider",
+                "isp",
+                "organization",
+                "org"
+            ]
+        );
+
+
+    const latitude =
+        Number(
+            deepFind(
+                raw,
+                [
+                    "latitude",
+                    "lat"
+                ]
+            )
+        );
+
+
+    const longitude =
+        Number(
+            deepFind(
+                raw,
+                [
+                    "longitude",
+                    "lng",
+                    "lon"
+                ]
+            )
+        );
+
+
+    const risk =
+        deepFind(
+            raw,
+            [
+                "risk_score",
+                "threat_score",
+                "severity",
+                "risk",
+                "confidence"
+            ]
+        );
+
+
+    const action =
+        deepFind(
+            raw,
+            [
+                "action",
+                "response_action",
+                "status",
+                "decision"
+            ]
+        );
+
+
+    return {
+
+        raw:
+            raw,
+
+        sourceIp:
+            sourceIp,
+
+        country:
+            country,
+
+        region:
+            region,
+
+        city:
+            city,
+
+        asn:
+            asn,
+
+        provider:
+            provider,
+
+        timestamp:
+            timestamp,
+
+        threat:
+            threat,
+
+        risk:
+            risk,
+
+        action:
+            action,
+
+        latitude:
+            Number.isFinite(
+                latitude
+            )
+            ?
+            latitude
+            :
+            null,
+
+        longitude:
+            Number.isFinite(
+                longitude
+            )
+            ?
+            longitude
+            :
+            null
+    };
+}
+
+
+/* ==========================================================
+   TIME FORMAT
+   ========================================================== */
+
+function formatTimestamp(
+    value
+) {
+
+    if (
+        !validValue(
+            value
+        )
+    ) {
+
+        return {
+            date:
+                "--",
+
+            time:
+                "--"
+        };
+    }
+
+
+    const date =
+        new Date(
+            value
+        );
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return {
+            date:
+                String(
+                    value
+                ),
+
+            time:
+                "--"
+        };
+    }
+
+
+    return {
+
+        date:
+            date.toLocaleDateString(),
+
+        time:
+            date.toLocaleTimeString()
+    };
+}
+
+
+/* ==========================================================
+   SET FIELD
+   ========================================================== */
+
+function setField(
+    id,
+    value
+) {
+
+    element(
+        id
+    ).textContent =
+        validValue(
+            value
+        )
+        ?
+        String(
+            value
+        )
+        :
+        "--";
+}
+
+
+/* ==========================================================
+   UPDATE PANEL
+   ========================================================== */
+
+function updatePanel() {
+
+    if (
+        incidents.length === 0
+    ) {
+
+        element(
+            "telemetryStatus"
+        ).textContent =
+            "NO MATCHING CYBER INCIDENT";
+
+
+        setField(
+            "sourceIp",
+            "--"
+        );
+
+        setField(
+            "country",
+            "--"
+        );
+
+        setField(
+            "region",
+            "--"
+        );
+
+        setField(
+            "city",
+            "--"
+        );
+
+        setField(
+            "asn",
+            "--"
+        );
+
+        setField(
+            "provider",
+            "--"
+        );
+
+        setField(
+            "date",
+            "--"
+        );
+
+        setField(
+            "time",
+            "--"
+        );
+
+        setField(
+            "threat",
+            "--"
+        );
+
+        setField(
+            "risk",
+            "--"
+        );
+
+        setField(
+            "action",
+            "--"
+        );
+
+
+        element(
+            "description"
+        ).textContent =
+            "No cybersecurity incident matched the selected replay period.";
+
+
+        return;
+    }
+
+
+    const incident =
+        incidents[
+            activeIncidentIndex
+        ];
+
+
+    const timeInfo =
+        formatTimestamp(
+            incident.timestamp
+        );
+
+
+    setField(
+        "sourceIp",
+        incident.sourceIp
+    );
+
+
+    setField(
+        "country",
+        incident.country
+    );
+
+
+    setField(
+        "region",
+        incident.region
+    );
+
+
+    setField(
+        "city",
+        incident.city
+    );
+
+
+    setField(
+        "asn",
+        incident.asn
+    );
+
+
+    setField(
+        "provider",
+        incident.provider
+    );
+
+
+    setField(
+        "date",
+        timeInfo.date
+    );
+
+
+    setField(
+        "time",
+        timeInfo.time
+    );
+
+
+    setField(
+        "threat",
+        incident.threat
+    );
+
+
+    setField(
+        "risk",
+        incident.risk
+    );
+
+
+    setField(
+        "action",
+        incident.action
+    );
+
+
+    if (
+        incident.latitude !== null
+        &&
+        incident.longitude !== null
+    ) {
+
+        element(
+            "telemetryStatus"
+        ).textContent =
+            (
+                "INCIDENT TELEMETRY ACTIVE // "
+                +
+                (
+                    activeIncidentIndex
+                    +
+                    1
+                )
+                +
+                "/"
+                +
+                incidents.length
+            );
+
+
+        element(
+            "description"
+        ).textContent =
+            (
+                "Approximate geographic origin acquired. "
+                +
+                "Sentinel is correlating network telemetry "
+                +
+                "with the incident timeline."
+            );
+    }
+
+    else {
+
+        element(
+            "telemetryStatus"
+        ).textContent =
+            (
+                "CYBER TELEMETRY ACTIVE // "
+                +
+                "GEO DATA UNAVAILABLE"
+            );
+
+
+        element(
+            "description"
+        ).textContent =
+            (
+                "Network incident loaded successfully. "
+                +
+                "No approximate geographic coordinates "
+                +
+                "are currently available for this record."
+            );
+    }
+}
+
+
+/* ==========================================================
+   APPLY PAYLOAD
+   ========================================================== */
+
+function applyPayload(
+    incoming
+) {
+
+    if (
+        !incoming
+        ||
+        typeof incoming !== "object"
+    ) {
+
+        return false;
+    }
+
+
+    payload =
+        incoming;
+
+
+    let rawIncidents =
+        [];
+
+
+    if (
+        Array.isArray(
+            incoming.incidents
+        )
+    ) {
+
+        rawIncidents =
+            incoming.incidents;
+    }
+
+
+    else if (
+        Array.isArray(
+            incoming.events
+        )
+    ) {
+
+        rawIncidents =
+            incoming.events;
+    }
+
+
+    else if (
+        Array.isArray(
+            incoming.data
+        )
+    ) {
+
+        rawIncidents =
+            incoming.data;
+    }
+
+
+    incidents =
+        rawIncidents.map(
+            normalizeIncident
+        );
+
+
+    activeIncidentIndex =
+        0;
+
+
+    updatePanel();
+
+
+    return true;
+}
+
+
+/* ==========================================================
+   LOAD PAYLOAD
+   ========================================================== */
+
+async function loadPayload() {
+
+    /* ------------------------------------------------------
+       Payload injected directly by Qt.
+       ------------------------------------------------------ */
+
+    if (
+        window.SENTINEL_REPLAY_PAYLOAD
+    ) {
+
+        if (
+            applyPayload(
+                window.SENTINEL_REPLAY_PAYLOAD
+            )
+        ) {
+
+            return true;
+        }
+    }
+
+
+    if (
+        window.replayPayload
+    ) {
+
+        if (
+            applyPayload(
+                window.replayPayload
+            )
+        ) {
+
+            return true;
+        }
+    }
+
+
+    /* ------------------------------------------------------
+       Local HTTP bridge.
+       ------------------------------------------------------ */
+
+    const endpoints = [
+
+        "/api/replay",
+
+        "/api/payload",
+
+        "/api/incidents",
+
+        "/api/replay/payload",
+
+        "/payload.json",
+
+        "/replay.json"
+    ];
+
+
+    for (
+        const endpoint
+        of endpoints
+    ) {
+
+        try {
+
+            const response =
+                await fetch(
+                    endpoint,
+                    {
+                        cache:
+                            "no-store"
+                    }
+                );
+
+
+            if (
+                !response.ok
+            ) {
+
+                continue;
+            }
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                applyPayload(
+                    data
+                )
+            ) {
+
+                return true;
+            }
+
+        }
+
+        catch (
+            error
+        ) {
+
+            console.debug(
+                "Replay endpoint unavailable:",
+                endpoint
+            );
+        }
+    }
+
+
+    return false;
+}
+
+
+/* ==========================================================
+   EVENT BRIDGE
+   ========================================================== */
+
+window.addEventListener(
+    "sentinel-replay-payload",
+
+    function(
+        event
+    ) {
+
+        if (
+            event.detail
+        ) {
+
+            applyPayload(
+                event.detail
+            );
+        }
+    }
+);
+
+
+/* ==========================================================
+   RESIZE
+   ========================================================== */
+
+function resizeCanvas() {
+
+    const rectangle =
+        canvas.getBoundingClientRect();
+
+
+    const ratio =
+        window.devicePixelRatio
+        ||
+        1;
+
+
+    width =
+        rectangle.width;
+
+
+    height =
+        rectangle.height;
+
+
+    canvas.width =
+        width
+        *
+        ratio;
+
+
+    canvas.height =
+        height
+        *
+        ratio;
+
+
+    ctx.setTransform(
+        ratio,
+        0,
+        0,
+        ratio,
+        0,
+        0
+    );
+}
+
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+
+resizeCanvas();
+
+
+/* ==========================================================
+   PROJECT GEO COORDINATES
+   ========================================================== */
+
+function project(
+    latitude,
+    longitude,
+    centerX,
+    centerY,
+    radius
+) {
+
+    const phi =
+        latitude
+        *
+        Math.PI
+        /
+        180;
+
+
+    const lambda =
+        (
+            longitude
+            *
+            Math.PI
+            /
+            180
+        )
+        +
+        rotation;
+
+
+    const x =
+        Math.cos(
+            phi
+        )
+        *
+        Math.sin(
+            lambda
+        );
+
+
+    const y =
+        Math.sin(
+            phi
+        );
+
+
+    const z =
+        Math.cos(
+            phi
+        )
+        *
+        Math.cos(
+            lambda
+        );
+
+
+    return {
+
+        x:
+            centerX
+            +
+            (
+                x
+                *
+                radius
+            ),
+
+        y:
+            centerY
+            -
+            (
+                y
+                *
+                radius
+            ),
+
+        z:
+            z
+    };
+}
+
+
+/* ==========================================================
+   GLOBE
+   ========================================================== */
+
+function drawGlobe() {
+
+    ctx.clearRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+
+    const centerX =
+        width
+        *
+        0.48;
+
+
+    const centerY =
+        height
+        *
+        0.50;
+
+
+    const radius =
+        Math.min(
+            width,
+            height
+        )
+        *
+        0.39;
+
+
+    /* ------------------------------------------------------
+       GLOW
+       ------------------------------------------------------ */
+
+    const gradient =
+        ctx.createRadialGradient(
+            centerX,
+            centerY,
+            radius * 0.05,
+
+            centerX,
+            centerY,
+            radius
+        );
+
+
+    gradient.addColorStop(
+        0,
+        "rgba(40, 180, 145, 0.30)"
+    );
+
+
+    gradient.addColorStop(
+        0.65,
+        "rgba(20, 100, 85, 0.19)"
+    );
+
+
+    gradient.addColorStop(
+        1,
+        "rgba(5, 30, 28, 0.05)"
+    );
+
+
+    ctx.beginPath();
+
+
+    ctx.arc(
+        centerX,
+        centerY,
+        radius,
+        0,
+        Math.PI * 2
+    );
+
+
+    ctx.fillStyle =
+        gradient;
+
+
+    ctx.fill();
+
+
+    ctx.strokeStyle =
+        "rgba(130,255,225,0.88)";
+
+
+    ctx.lineWidth =
+        2;
+
+
+    ctx.stroke();
+
+
+    /* ------------------------------------------------------
+       LATITUDE
+       ------------------------------------------------------ */
+
+    for (
+        let latitude = -60;
+        latitude <= 60;
+        latitude += 30
+    ) {
+
+        const phi =
+            latitude
+            *
+            Math.PI
+            /
+            180;
+
+
+        const y =
+            centerY
+            -
+            (
+                Math.sin(
+                    phi
+                )
+                *
+                radius
+            );
+
+
+        const horizontalRadius =
+            Math.cos(
+                phi
+            )
+            *
+            radius;
+
+
+        ctx.beginPath();
+
+
+        ctx.ellipse(
+            centerX,
+            y,
+
+            horizontalRadius,
+            horizontalRadius * 0.13,
+
+            0,
+            0,
+            Math.PI * 2
+        );
+
+
+        ctx.strokeStyle =
+            "rgba(90,245,210,0.29)";
+
+
+        ctx.lineWidth =
+            1;
+
+
+        ctx.stroke();
+    }
+
+
+    /* ------------------------------------------------------
+       LONGITUDE
+       ------------------------------------------------------ */
+
+    for (
+        let longitude = 0;
+        longitude < 180;
+        longitude += 30
+    ) {
+
+        ctx.beginPath();
+
+
+        let first =
+            true;
+
+
+        for (
+            let latitude = -90;
+            latitude <= 90;
+            latitude += 3
+        ) {
+
+            const point =
+                project(
+                    latitude,
+                    longitude,
+                    centerX,
+                    centerY,
+                    radius
+                );
+
+
+            if (
+                first
+            ) {
+
+                ctx.moveTo(
+                    point.x,
+                    point.y
+                );
+
+
+                first =
+                    false;
+            }
+
+            else {
+
+                ctx.lineTo(
+                    point.x,
+                    point.y
+                );
+            }
+        }
+
+
+        ctx.strokeStyle =
+            "rgba(90,245,210,0.22)";
+
+
+        ctx.lineWidth =
+            1;
+
+
+        ctx.stroke();
+    }
+
+
+    /* ------------------------------------------------------
+       INCIDENT MARKERS
+       ------------------------------------------------------ */
+
+    incidents.forEach(
+        function(
+            incident,
+            index
+        ) {
+
+            if (
+                incident.latitude === null
+                ||
+                incident.longitude === null
+            ) {
+
+                return;
+            }
+
+
+            const point =
+                project(
+                    incident.latitude,
+                    incident.longitude,
+
+                    centerX,
+                    centerY,
+                    radius
+                );
+
+
+            /* rear side */
+
+            if (
+                point.z < -0.1
+            ) {
+
+                return;
+            }
+
+
+            const active =
+                index
+                ===
+                activeIncidentIndex;
+
+
+            if (
+                active
+            ) {
+
+                const pulse =
+                    13
+                    +
+                    Math.sin(
+                        performance.now()
+                        /
+                        160
+                    )
+                    *
+                    5;
+
+
+                ctx.beginPath();
+
+
+                ctx.arc(
+                    point.x,
+                    point.y,
+                    pulse,
+                    0,
+                    Math.PI * 2
+                );
+
+
+                ctx.strokeStyle =
+                    "rgba(255,100,90,0.64)";
+
+
+                ctx.lineWidth =
+                    2;
+
+
+                ctx.stroke();
+            }
+
+
+            ctx.beginPath();
+
+
+            ctx.arc(
+                point.x,
+                point.y,
+
+                active
+                ?
+                6
+                :
+                3,
+
+                0,
+                Math.PI * 2
+            );
+
+
+            ctx.fillStyle =
+                active
+                ?
+                "rgba(255,100,90,0.98)"
+                :
+                "rgba(95,255,220,0.88)";
+
+
+            ctx.fill();
+        }
+    );
+}
+
+
+/* ==========================================================
+   ANIMATION
+   ========================================================== */
+
+function animationLoop(
+    now
+) {
+
+    rotation +=
+        0.0016;
+
+
+    drawGlobe();
+
+
+    if (
+        incidents.length > 1
+        &&
+        now
+        -
+        lastIncidentSwitch
+        >
+        5000
+    ) {
+
+        activeIncidentIndex =
+            (
+                activeIncidentIndex
+                +
+                1
+            )
+            %
+            incidents.length;
+
+
+        lastIncidentSwitch =
+            now;
+
+
+        updatePanel();
+    }
+
+
+    requestAnimationFrame(
+        animationLoop
+    );
+}
+
+
+/* ==========================================================
+   INITIALIZATION
+   ========================================================== */
+
+async function initialize() {
+
+    const success =
+        await loadPayload();
+
+
+    if (
+        !success
+    ) {
+
+        /* Qt may inject a payload slightly after page load. */
+
+        for (
+            let attempt = 0;
+            attempt < 8;
+            attempt++
+        ) {
+
+            await new Promise(
+                function(
+                    resolve
+                ) {
+
+                    setTimeout(
+                        resolve,
+                        500
+                    );
+                }
+            );
+
+
+            const retry =
+                await loadPayload();
+
+
+            if (
+                retry
+            ) {
+
+                break;
+            }
+        }
+    }
+}
+
+
+initialize();
+
+
+requestAnimationFrame(
+    animationLoop
+);
+
+</script>
+
+
+</body>
+</html>
