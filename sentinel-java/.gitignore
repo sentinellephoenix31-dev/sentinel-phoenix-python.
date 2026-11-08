@@ -1,0 +1,35 @@
+# Compilation
+/target/
+*.class
+
+# Données personnelles et état local
+/data/
+*.log
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+
+# Modèles et outils locaux
+/models/
+/tools/
+
+# Sauvegardes et anciens packs
+/backups/
+/Sentinel-Command-Precision*/
+/Sentinel-Globe-Sync*/
+/Sentinel-Incident-Scenes*/
+*.zip
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Réglages locaux
+/.idea/
+/.vscode/
+Thumbs.db
+.DS_Store
